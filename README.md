@@ -12,7 +12,6 @@ Personal study notes. One folder per subject, one Markdown file per topic.
 
 - Folder per subject: `javascript/`, `system-design/`, `dsa/`
 - File per topic, kebab-case: `event-loop.md`, `rate-limiting.md`
-- Start each file from `templates/topic-template.md`
 - Images go in `assets/` next to the note that uses them
 
 ## Workflow
