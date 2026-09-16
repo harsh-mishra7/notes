@@ -21,6 +21,7 @@ OAuth is *authorization*. JWT is a *token format*. Neither is "login" by itself.
 | ~1995–2000 | **Session + Cookie auth** | Password sent once; server remembers you | Server-side state; scaling pain; CSRF |
 | 2007–2010 | **OAuth 1.0 / 1.0a** (RFC 5849) | Third-party apps stop asking for your password | Request signing was brutal to implement |
 | 2012 | **OAuth 2.0** (RFC 6749) | Dropped signatures, leaned on TLS; simple + flexible | It's a *framework*, not a protocol — many wrong ways to use it |
+| 2014 | **OpenID Connect** | OAuth 2 said nothing about *identity*; everyone invented their own login | One more spec to get wrong; `id_token` vs `access_token` confusion |
 | 2015 | **JWT** (RFC 7519) | Self-contained, stateless, verifiable token | Can't revoke easily; people put secrets in it; alg confusion |
 
 ```
@@ -112,7 +113,74 @@ The cookie is an **opaque pointer**, not data. It means nothing on its own — a
 
 ---
 
-## 3. OAuth 1.0 → 1.0a (2007–2010)
+## 3. JWT (2015, RFC 7519)
+
+Not an auth protocol — a **token format**. It answers: *can the token carry its own proof, so nobody has to look it up?*
+
+**Structure — three base64url parts joined by dots**
+
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9 . eyJzdWIiOiI0MiIsImV4cCI6MTc...  . SflKxwRJSMeKKF2QT4
+└────────── HEADER ──────────────────┘ └────────── PAYLOAD ─────────┘ └──── SIGNATURE ────┘
+   { "alg": "HS256", "typ": "JWT" }      { "sub": "42",                HMAC-SHA256(
+                                           "role": "admin",             b64(header) + "." + b64(payload),
+                                           "exp": 1789...,              secret
+                                           "iat": 1789... }           )
+```
+
+**Critical:** the payload is *encoded*, **not encrypted**. Anyone can paste a JWT into jwt.io and read it. The signature only guarantees it *wasn't tampered with*. **Never put secrets in a JWT.**
+
+**Standard claims:** `iss` (issuer), `sub` (subject/user), `aud` (audience), `exp` (expiry), `iat` (issued at), `nbf` (not before), `jti` (token ID).
+
+**The trade it makes**
+
+```
+Session:  cookie → [lookup in Redis] → user            stateful, revocable, extra hop
+JWT:      token  → [verify signature] → user           stateless, no lookup, hard to revoke
+```
+
+The server only needs the key. No database hit. That's why it fits microservices, mobile apps, and horizontally scaled backends.
+
+**Why it isn't a silver bullet**
+
+- **Revocation is the hard part.** A valid JWT works until `exp`, even if you ban the user. Workarounds: short-lived access tokens (5–15 min) + a refresh token you *can* revoke server-side, or a denylist (which... reintroduces state).
+- **Where do you store it in a browser?** `localStorage` → readable by XSS. Cookie → back to CSRF. There's no clean answer; a `HttpOnly` cookie + `SameSite` is usually the least bad.
+- **`alg: none` attack.** Early libraries accepted a token whose header said "no signature". Always pin the expected algorithm server-side.
+- **Algorithm confusion.** Attacker flips `RS256` → `HS256` and signs with the *public* key as the HMAC secret. Same fix: never trust `alg` from the token.
+- **Bloat.** A fat JWT rides on every request header.
+
+**HS256 vs RS256**
+
+- `HS256` — one shared secret, signs and verifies. Fine when one service does both.
+- `RS256` — private key signs, public key verifies. Use when many services verify tokens they didn't issue (that's what JWKS endpoints are for).
+
+---
+
+## 4. The Two-Token Strategy (Access & Refresh Tokens)
+
+When using stateless tokens like JWTs, **revocation is the hard part**. A valid JWT works until its `exp` time, even if you ban the user mid-session. There's no server storage to delete!
+
+To mitigate this without completely breaking the stateless benefits, the industry uses a **two-token setup**:
+
+```text
+Access token   — (e.g. JWT), short lived (e.g., 15 mins), sent on every request, NOT revocable.
+Refresh token  — Random opaque string, long lived (e.g., weeks), stored in the DB, ONLY used to get new access tokens, IS revocable (delete the row).
+```
+
+### The Workflow
+
+1. **Login:** Server verifies credentials, saves a root refresh token in the DB, and sends both tokens to the client.
+2. **Normal usage:** Client sends purely the access token on API requests. Fast verification, zero DB lookups.
+3. **Expiration:** After ~15 minutes, the access token expires. The server starts returning `401 Unauthorized`.
+4. **Refreshing:** Client catches the 401 and silently sends the refresh token to a `/refresh` endpoint.
+5. **Validation:** Server looks up the refresh token in the DB. If it's valid and the user isn't banned, it replies with a brand new access token.
+6. **Revocation (The Fix):** To ban a user or "log out everywhere," just delete their refresh token from the DB. When their current access token inevitably expires, they can't get a new one.
+
+Worst case, a banned user has ~15 more minutes. That's the trade-off everyone accepts to keep everyday requests perfectly stateless.
+
+---
+
+## 5. OAuth 1.0 → 1.0a (2007–2010)
 
 Born at Twitter (2006–07) precisely to kill the password anti-pattern.
 
@@ -152,7 +220,7 @@ This meant no TLS was strictly required — the signature proved integrity. Clev
 
 ---
 
-## 4. OAuth 2.0 (2012, RFC 6749)
+## 6. OAuth 2.0 (2012, RFC 6749)
 
 The pragmatic rewrite. The big decision: **stop signing requests, just mandate TLS and use bearer tokens.**
 
@@ -211,51 +279,98 @@ Why the two-step dance (code → token)? So the **access token never travels thr
 
 - It's a **framework, not a protocol**. Two "OAuth 2 compliant" servers can be incompatible. Eran Hammer, the lead editor, [resigned and called it "the road to hell"](https://gist.github.com/nunoarruda/f0a8f6ad2ab5c26982c7).
 - It says **nothing about authentication.** An access token tells you *the app may call this API* — not *who the user is*. Everyone bolted on their own "get user info" endpoint anyway.
-  - → **OpenID Connect (2014)** fixed exactly this: a thin authN layer on OAuth 2 that adds a standard **`id_token`** (which is a JWT) and a `/userinfo` endpoint. "Sign in with Google" is OIDC, not raw OAuth 2.
+  - → **OpenID Connect (2014)** fixed exactly this — see section 7 below.
 - The token itself was still usually opaque → the resource server had to call back to the auth server (*token introspection*) on every request. Stateful again.
 
 ---
 
-## 5. JWT (2015, RFC 7519)
+## 7. OpenID Connect (2014)
 
-Not an auth protocol — a **token format**. It answers: *can the token carry its own proof, so nobody has to look it up?*
+The missing half of OAuth 2. OAuth 2 answers *"may this app call this API?"* — it never answers *"who is sitting at the keyboard?"*. Apps hacked around that by calling some vendor-specific `/me` endpoint and treating "the access token worked" as proof of login. That isn't authentication, and it's exploitable (any token stolen from any other app for the same API also "works").
 
-**Structure — three base64url parts joined by dots**
+OIDC is **a thin, standard authN layer bolted on top of OAuth 2** — same authorize/token endpoints, same redirect dance. It adds one token and one contract.
 
-```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9 . eyJzdWIiOiI0MiIsImV4cCI6MTc...  . SflKxwRJSMeKKF2QT4
-└────────── HEADER ──────────────────┘ └────────── PAYLOAD ─────────┘ └──── SIGNATURE ────┘
-   { "alg": "HS256", "typ": "JWT" }      { "sub": "42",                HMAC-SHA256(
-                                           "role": "admin",             b64(header) + "." + b64(payload),
-                                           "exp": 1789...,              secret
-                                           "iat": 1789... }           )
-```
-
-**Critical:** the payload is *encoded*, **not encrypted**. Anyone can paste a JWT into jwt.io and read it. The signature only guarantees it *wasn't tampered with*. **Never put secrets in a JWT.**
-
-**Standard claims:** `iss` (issuer), `sub` (subject/user), `aud` (audience), `exp` (expiry), `iat` (issued at), `nbf` (not before), `jti` (token ID).
-
-**The trade it makes**
+**What actually changes in the flow: one scope.**
 
 ```
-Session:  cookie → [lookup in Redis] → user            stateful, revocable, extra hop
-JWT:      token  → [verify signature] → user           stateless, no lookup, hard to revoke
+GET https://accounts.google.com/o/oauth2/v2/auth
+  ?response_type=code
+  &client_id=abc
+  &redirect_uri=https://app.com/callback
+  &scope=openid email profile     ← "openid" = this is OIDC, also give me an id_token
+  &state=xyz                      ← CSRF protection on the callback (OAuth 2)
+  &nonce=n-0S6_WzA2Mj             ← binds the id_token to THIS login request (OIDC)
 ```
 
-The server only needs the key. No database hit. That's why it fits microservices, mobile apps, and horizontally scaled backends.
+The token exchange then returns one extra field:
 
-**Why it isn't a silver bullet**
+```json
+{
+  "access_token":  "ya29.a0Af...",    // for calling APIs    (OAuth 2, opaque to you)
+  "id_token":      "eyJhbGciOiJSUzI...", // for knowing WHO  (OIDC, a JWT you read)
+  "refresh_token": "1//0gLm...",
+  "expires_in": 3600
+}
+```
 
-- **Revocation is the hard part.** A valid JWT works until `exp`, even if you ban the user. Workarounds: short-lived access tokens (5–15 min) + a refresh token you *can* revoke server-side, or a denylist (which... reintroduces state).
-- **Where do you store it in a browser?** `localStorage` → readable by XSS. Cookie → back to CSRF. There's no clean answer; a `HttpOnly` cookie + `SameSite` is usually the least bad.
-- **`alg: none` attack.** Early libraries accepted a token whose header said "no signature". Always pin the expected algorithm server-side.
-- **Algorithm confusion.** Attacker flips `RS256` → `HS256` and signs with the *public* key as the HMAC secret. Same fix: never trust `alg` from the token.
-- **Bloat.** A fat JWT rides on every request header.
+### The `id_token`
 
-**HS256 vs RS256**
+Always a **JWT**, normally `RS256`-signed, and it is addressed **to your app** — not to an API. Decoded:
 
-- `HS256` — one shared secret, signs and verifies. Fine when one service does both.
-- `RS256` — private key signs, public key verifies. Use when many services verify tokens they didn't issue (that's what JWKS endpoints are for).
+```json
+{
+  "iss": "https://accounts.google.com",      // who issued it
+  "sub": "110248495921238473",               // stable unique user id ← key YOUR users on this
+  "aud": "abc.apps.googleusercontent.com",   // YOUR client_id
+  "exp": 1789003600, "iat": 1789000000,
+  "nonce": "n-0S6_WzA2Mj",
+  "email": "harsh@example.com",
+  "email_verified": true,
+  "name": "Harsh Mishra",
+  "picture": "https://lh3.googleusercontent.com/..."
+}
+```
+
+**Validate it — don't just decode it.** The whole security of "Sign in with X" is these five checks:
+
+| Check | Why |
+|-------|-----|
+| Signature, against the provider's **JWKS** (`jwks_uri`) | Otherwise anyone can forge an identity |
+| `iss` == the expected issuer | Stops a different provider vouching for the user |
+| `aud` == your `client_id` | Stops a token minted for *another app* logging in here |
+| `exp` / `iat` still fresh | Replay of an old login |
+| `nonce` == the one you sent | Ties this token to the login you actually started |
+
+### Two tokens, two jobs
+
+| | `id_token` | `access_token` |
+|---|---|---|
+| Audience | **your app** | **the resource server (API)** |
+| Format | always a JWT | opaque or JWT — none of your business |
+| Answers | *who is the user?* | *what is this app allowed to do?* |
+| You should | verify it, then create a session | forward it as `Authorization: Bearer ...` |
+| You should **not** | send it to an API | treat it as proof of identity |
+
+That last row is the classic OIDC bug in both directions.
+
+### What else OIDC standardizes
+
+- **Discovery** — `GET /.well-known/openid-configuration` returns every endpoint, the supported scopes, and the `jwks_uri`. This is why an OIDC client library can talk to Google, Auth0, Keycloak, and Okta with only an issuer URL as config.
+- **`/userinfo`** — call it with the access token to get claims that weren't crammed into the `id_token`.
+- **Standard scopes** — `openid` (required), `profile`, `email`, `address`, `phone`.
+- **Authentication controls** — `prompt=login` (force a fresh login), `max_age`, `acr_values` (demand MFA), `login_hint`.
+- **Logout** — RP-initiated logout at `end_session_endpoint`, plus front/back-channel logout so sibling apps get told.
+
+### After a successful login
+
+An `id_token` is a **login receipt, not a session**. The normal move is: validate it once, then issue your *own* session cookie or your own tokens — see sections 2 and 4. Don't keep re-sending the provider's `id_token` on every request.
+
+### Gotchas
+
+- **Don't key accounts on `email`.** People change emails and providers reuse them. `sub` is the stable id — but it's only unique *per issuer*, and some providers issue *pairwise* `sub`s (a different value per client), so store `(iss, sub)`.
+- **Check `email_verified`.** Without it, a sloppy provider that lets anyone claim an unverified email hands you an account takeover.
+- **`state` ≠ `nonce`.** `state` protects the callback from CSRF; `nonce` protects the `id_token` from replay. You need both.
+- **"Sign in with Google / Apple / Microsoft" is OIDC.** "Login with GitHub / Facebook" is *raw OAuth 2* plus a bespoke `/me` call — same UX, no `id_token`, so you must validate identity differently.
 
 ---
 
@@ -273,4 +388,5 @@ The server only needs the key. No database hit. That's why it fits microservices
 - A JWT is not "more secure" than a session — it's a different trade (statelessness for revocability).
 - `alg` in a JWT header is attacker-controlled input. Pin it.
 - Cookies are sent automatically → that convenience *is* CSRF.
+- `id_token` is for your app, `access_token` is for the API. Swapping them is the classic OIDC bug.
 - Access tokens should be short-lived. Refresh tokens are the revocable part.
