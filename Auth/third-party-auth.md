@@ -58,42 +58,64 @@ Google will refuse to redirect anywhere not on that list. That's what stops an a
 
 ### The runtime flow
 
+Two redirects that go *through the browser*, and one call that goes behind its back:
+
+- **Front channel** — steps 1–5, everything that travels via the address bar. The user can read and tamper with all of it, so the only thing Google sends this way is a `code`: a one-time voucher that is worthless on its own.
+- **Back channel** — step 6, your server calling Google directly. This is where `client_secret` is spent and where the `id_token` comes back. Neither ever touches the browser.
+
 ```
- Browser                      Your backend                     Google
-    │                              │                              │
-    │  click "Sign in with Google" │                              │
-    │─────────────────────────────▶│                              │
-    │   302 to accounts.google.com │                              │
-    │◀─────────────────────────────│                              │
-    │      ?client_id&redirect_uri&scope=openid email profile      │
-    │       &state=<random>&nonce=<random>                         │
-    │─────────────────────────────────────────────────────────────▶│
-    │                                                              │
-    │            [ user logs in + consent screen ]                  │
-    │                                                              │
-    │◀─────────── 302 /callback?code=SplxlOB&state=<random> ────────│
-    │─────────────────────────────▶│                              │
-    │                              │  POST /token                 │
-    │                              │  {code, client_id, secret}   │  ← server-to-server,
-    │                              │─────────────────────────────▶│    over the internet,
-    │                              │  {id_token, access_token}    │    never via the browser
-    │                              │◀─────────────────────────────│
-    │                              │                              │
-    │                     [ verify id_token: signature/iss/aud/exp/nonce ]
-    │                     [ upsert user WHERE (iss, sub) ]
-    │                     [ mint YOUR session ]
-    │                              │                              │
-    │◀── 302 /dashboard  +  Set-Cookie: token=...; HttpOnly ──────│
-    │                              │                              │
-    │  every request after this: your cookie. Google is gone.      │
+ Browser                          Your backend                         Google
+     │                                  │                                 │
+1    │  click "Sign in with Google"     │                                 │
+     │─────────────────────────────────▶│                                 │
+2    │  302 → Google (+ state, nonce)   │                                 │
+     │◀─────────────────────────────────│                                 │
+3    │───────────────────────────────────────────────────────────────────▶│
+     │         [ login + consent ]      │                                 │
+     │                                  │                                 │
+4    │  302 back with ?code & state     │                                 │
+     │◀───────────────────────────────────────────────────────────────────│
+5    │─────────────────────────────────▶│                                 │
+     │                                  │  [ state == cookie? ]           │
+     │                                  │                                 │
+6    │                                  │  POST /token {code + secret}    │
+     │                                  │────────────────────────────────▶│
+     │                                  │  { id_token, access_token }     │
+     │                                  │◀────────────────────────────────│
+     │                                  │                                 │
+7    │                                  │  [ verify id_token ]            │
+     │                                  │  [ upsert user (provider,sub) ] │
+     │                                  │  [ mint YOUR session ]          │
+     │                                  │                                 │
+8    │  302 /dashboard + Set-Cookie     │                                 │
+     │◀─────────────────────────────────│                                 │
+     │                                  │                                 │
+
+     every request after this: your cookie only. Google is not in the picture.
 ```
 
-Note where the line stops: **Google is involved exactly once.** After the callback, your app is back to the same session mechanics it would have used with a password login.
+| # | What happens | Why it's there |
+|---|---|---|
+| 1 | Browser hits **your** `/api/auth/google`, not Google's URL | you need to mint `state` and `nonce` before the redirect |
+| 2 | You 302 to `accounts.google.com`, stashing `state` + `nonce` in short-lived HttpOnly cookies | `state` = a CSRF token for the round trip; `nonce` ties the `id_token` you'll get back to *this* login attempt |
+| 3 | Google authenticates the user — existing Google session or password, then consent | the one job you outsourced |
+| 4 | Google 302s back to a **pre-registered** redirect URI with `?code&state` | the registration is what stops the `code` being delivered to an attacker's server |
+| 5 | Your callback compares `state` to the cookie | mismatch = this login wasn't started by this browser. Abort |
+| 6 | Server-to-server `POST /token` with `code` + `client_secret` → `id_token` | proves *your app* is the client the code was issued to. The secret can't leak through a browser it never enters |
+| 7 | Verify the `id_token` (signature vs Google's JWKS, `iss`, `aud`, `exp`, `nonce`), upsert on `(provider, sub)`, mint your own session | verification **is** the login; the upsert is what connects Google's identity to a row you own |
+| 8 | 302 into the app with your `Set-Cookie` | from here it's your session, identical to a password login |
+
+Two things to take away from the shape of that diagram:
+
+- **Google touches only steps 3, 4 and 6** — then it's gone. The bottom of the diagram is the same session mechanics you'd have written for a password login.
+- **The browser never holds anything sensitive.** It carries a `code` it can't redeem, and it leaves with a cookie you issued.
+
+Steps 1–2 are the first route handler below; steps 5–8 are the second.
 
 ### Code sketch (Next.js route handlers + Prisma)
 
 ```ts
-// app/api/auth/google/route.ts  — step 1: send them to Google
+// app/api/auth/google/route.ts  — steps 1-2: send them to Google
 export async function GET() {
   const state = crypto.randomUUID();
   const nonce = crypto.randomUUID();
@@ -115,7 +137,7 @@ export async function GET() {
 ```
 
 ```ts
-// app/api/auth/callback/google/route.ts  — step 2: they came back
+// app/api/auth/callback/google/route.ts  — steps 5-8: they came back
 export async function GET(req: NextRequest) {
   const code  = req.nextUrl.searchParams.get('code')!;
   const state = req.nextUrl.searchParams.get('state')!;
@@ -201,24 +223,53 @@ With Clerk:      Your app ──────▶ Clerk ──OIDC──▶ Google
 
 ### The flow
 
+Two phases, and the second one is the whole point: **after login, your backend checks a signature and nothing else** — no call to Clerk on the request path.
+
 ```
- Browser                        Clerk                      Your backend
-    │                             │                              │
-    │  <SignIn /> component       │                              │
-    │────────────────────────────▶│                              │
-    │    [ Clerk runs the whole Google/OIDC dance itself ]        │
-    │                             │                              │
-    │◀── Set-Cookie: __session=<short-lived JWT>  ────────────────│
-    │        (on YOUR domain, via clerk.yourapp.com CNAME)        │
-    │                             │                              │
-    │  GET /api/appointments  (cookie rides along)                │
-    │────────────────────────────────────────────────────────────▶│
-    │                             │       verify JWT signature    │
-    │                             │◀─── fetch JWKS (cached) ──────│
-    │                             │                              │
-    │                        [ no network call to Clerk per request ]
-    │◀───────────────────── 200 with data ────────────────────────│
+ Browser                              Clerk                         Your backend
+     ╞═══ login — once ═════════════════╪═════════════════════════════════╡
+1    │  <SignIn />: user picks Google   │                                 │
+     │─────────────────────────────────▶│                                 │
+     │                                  │  [ Clerk ⇄ Google/Apple/OTP ]   │
+     │                                  │                                 │
+2    │  Set-Cookie __session (~60s JWT) │                                 │
+     │  on YOUR domain, via CNAME       │                                 │
+     │◀─────────────────────────────────│                                 │
+     ╞═══ every request after ══════════╪═════════════════════════════════╡
+3    │  GET /api/appointments + cookie  │                                 │
+     │───────────────────────────────────────────────────────────────────▶│
+4    │                                  │  fetch JWKS — first time only   │
+     │                                  │◀╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌│
+     │                                  │╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌▶│
+     │                                  │  { public keys } → cached       │
+     │                                  │                                 │
+5    │                                  │  [ verify signature, locally ]  │
+6    │                                  │  [ find user WHERE clerkId ]    │
+     │                                  │                                 │
+7    │  200 with data                   │                                 │
+     │◀───────────────────────────────────────────────────────────────────│
+     │                                  │                                 │
+     ╞═══ in the background, forever ═══╪═════════════════════════════════╡
+8    │  SDK re-mints the JWT (~60s)     │                                 │
+     │◀────────────────────────────────▶│                                 │
+     │                                  │                                 │
 ```
+
+| # | What happens | Why it's there |
+|---|---|---|
+| 1 | `<SignIn />` talks to Clerk, which runs the Google/Apple/OTP dance itself | your app never sees a redirect, a `client_secret` or an `id_token` — all of §1 collapses into this one step |
+| 2 | Clerk sets `__session`, a short-lived JWT, **on your domain** | a same-origin cookie rides along with ordinary `fetch` calls. More on this below |
+| 3 | Every API call carries that cookie to your backend | this is your session now — same shape as the cookie you'd have minted yourself |
+| 4 | Clerk's public keys are fetched **once** and cached; the dotted line is rare, not per-request | Clerk being slow or down doesn't slow down your API |
+| 5 | Backend verifies the JWT signature with those cached keys | the only auth work on the hot path, and it touches no network |
+| 6 | The JWT's `sub` (`user_2abc…`) → your `users` row via `clerkId` | Clerk owns identity; your database owns the domain data — §3 |
+| 7 | Your route returns data | from step 3 on, this is indistinguishable from Model B's tail |
+| 8 | Clerk's frontend SDK quietly re-mints the token before it expires | the short lifetime is what makes revocation near-instant — next section |
+
+Same two takeaways as Model B, moved one box over:
+
+- **Clerk is in the path only at steps 1–2 and the background refresh.** Steps 3–7 are your middleware, your user row, your response — note how step 3's arrow sails straight past Clerk's lane.
+- **What actually changed versus §1 is who signs the JWT** — and that you no longer write step 1 yourself.
 
 ### The bit that confuses everyone: whose cookie is it?
 
