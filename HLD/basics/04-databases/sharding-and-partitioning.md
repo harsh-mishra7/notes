@@ -132,10 +132,10 @@ US users      → Virginia shard
 
 | Strategy | Even distribution | Range queries | Easy to add shards | Typical use |
 |---|---|---|---|---|
-| **Range** | ❌ Risk of hot spots | ✅ | ⚠️ Split ranges | Time-series, ordered IDs |
+| **Range** | ❌ Risk of hot spots | ✅ | ~ Split ranges | Time-series, ordered IDs |
 | **Hash** | ✅ | ❌ | ❌ with `% N`, ✅ with consistent hashing | User data, general purpose |
 | **Directory** | ✅ You control it | Depends | ✅ | Multi-tenant SaaS |
-| **Geo** | ❌ Often uneven | ✅ within region | ⚠️ | Global apps, compliance |
+| **Geo** | ❌ Often uneven | ✅ within region | ~ | Global apps, compliance |
 
 ---
 
@@ -155,7 +155,7 @@ Example — a chat app:
 | `message_id` | ❌ | Loading one conversation hits every shard |
 | `created_at` | ❌ | All current writes go to one shard |
 | `chat_id` | ✅ | A conversation's messages live together; reads hit one shard |
-| `user_id` | ⚠️ | Group chats span many users → cross-shard reads |
+| `user_id` | ~ | Group chats span many users → cross-shard reads |
 
 **Rule of thumb:** shard by the thing your main query is "about" — `WHERE user_id = ?` → shard by `user_id`.
 
@@ -167,7 +167,7 @@ Even with hashing, **one key can be hot**. Hashing spreads *keys* evenly, not *t
 
 ```
 Shard 1: [ random users ... ]            ░░░░ normal load
-Shard 2: [ celebrity with 100M followers ] ████████████████ 🔥 overloaded
+Shard 2: [ celebrity with 100M followers ] ████████████████ overloaded
 Shard 3: [ random users ... ]            ░░░░ normal load
 ```
 
@@ -246,7 +246,7 @@ Server D   ·k3
 Add Server E between A and B → only keys between A and E move to E.
 ```
 
-It's covered in depth in its own note; the key point here is that it makes **adding and removing shards cheap**, which is why Cassandra, DynamoDB, and many caches use it.
+It's covered in depth in [consistent-hashing.md](../05-distributed-systems-theory/consistent-hashing.md); the key point here is that it makes **adding and removing shards cheap**, which is why Cassandra, DynamoDB, and many caches use it.
 
 ---
 

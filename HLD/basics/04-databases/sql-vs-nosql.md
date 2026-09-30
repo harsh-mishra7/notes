@@ -154,10 +154,10 @@ Data is stored as **nodes** (things) and **edges** (relationships). Relationship
 |---|---|---|---|---|---|
 | **Data shape** | Tables, fixed columns | JSON documents | Key → blob | Partitions of sorted rows | Nodes + edges |
 | **Schema** | Strict | Flexible | None | Flexible per row | Flexible |
-| **Joins** | ✅ Excellent | ⚠️ Limited | ❌ None | ❌ None | ✅ Via traversal |
-| **Transactions** | ✅ Full ACID | ✅ Often (per-doc, some multi-doc) | ⚠️ Limited | ⚠️ Limited | ✅ Often |
-| **Horizontal scaling** | ⚠️ Harder | ✅ Built-in | ✅ Easiest | ✅ Built for it | ⚠️ Harder |
-| **Query flexibility** | ✅ Very high | ✅ Good | ❌ Key only | ⚠️ Must match table design | ✅ For relationships |
+| **Joins** | ✅ Excellent | ~ Limited | ❌ None | ❌ None | ✅ Via traversal |
+| **Transactions** | ✅ Full ACID | ✅ Often (per-doc, some multi-doc) | ~ Limited | ~ Limited | ✅ Often |
+| **Horizontal scaling** | ~ Harder | ✅ Built-in | ✅ Easiest | ✅ Built for it | ~ Harder |
+| **Query flexibility** | ✅ Very high | ✅ Good | ❌ Key only | ~ Must match table design | ✅ For relationships |
 | **Typical use** | Orders, payments, users | Catalogs, profiles | Cache, sessions | Logs, time-series, chat | Social, fraud |
 
 > Modern lines are blurry: PostgreSQL has a JSON column type, MongoDB has multi-document transactions, and "NewSQL" systems (CockroachDB, Spanner, YugabyteDB) give SQL + ACID with horizontal scaling. The families above are still the right mental model.

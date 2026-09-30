@@ -59,7 +59,7 @@ COMMIT;   -- or ROLLBACK if anything fails
 ```
 BEGIN
   Asha -500      ✅
-  Ravi +500      💥 crash / error
+  Ravi +500      ❌ crash / error
 ROLLBACK  ──►  Asha's -500 is undone. Balances back to the start.
 ```
 

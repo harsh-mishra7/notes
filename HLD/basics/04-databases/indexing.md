@@ -156,7 +156,7 @@ This leads to the **leftmost prefix rule**: the index can be used only if your q
 | `country = 'IN' AND city = 'Pune' AND age = 19` | ✅ fully |
 | `city = 'Pune'` | ❌ skips `country` |
 | `age = 19` | ❌ |
-| `country = 'IN' AND age = 19` | ⚠️ partially (only `country` part) |
+| `country = 'IN' AND age = 19` | ~ partially (only `country` part) |
 
 Same as a phone book sorted by last name, then first name: easy to find all "Sharma"s, useless for finding everyone named "Ravi".
 
