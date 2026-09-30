@@ -1,6 +1,6 @@
 # Real-time Communication
 
-## TL;DR
+## Brief
 
 Normal HTTP is **client asks, server answers**. The server can't speak first. But chat messages, notifications, and live scores need the server to push updates *as they happen*.
 
@@ -239,23 +239,3 @@ Common building blocks:
 - **Sticky sessions / consistent routing** at the load balancer for long-lived connections.
 - **Heartbeats (ping/pong)** to detect dead connections and keep idle proxies from cutting them.
 - **Reconnect + resume** logic: clients reconnect with backoff and ask for anything they missed (via a last-seen message ID).
-
----
-
-## Where this shows up in HLD
-
-- **"Design WhatsApp / Slack / a chat system"** — WebSockets + pub/sub + presence is the core of the answer.
-- **"Design a notification system"** — SSE or long polling for in-app delivery, push services (APNs/FCM) when the app is closed.
-- **"Design a live scoreboard / stock ticker"** — fan-out of one update to millions of viewers; SSE plus a pub/sub backbone.
-- **Trade-off discussions:** interviewers expect you to justify *why* not plain polling (load) and *why* not WebSockets everywhere (stateful, harder to scale).
-- **Capacity estimation:** open connections per server, memory per connection, and heartbeat traffic become real numbers to estimate.
-
----
-
-## Key takeaways
-
-- HTTP alone can't push; these four techniques work around that, trading **simplicity** for **freshness and efficiency**.
-- **Short polling** is simplest but wasteful; **long polling** holds the request until data arrives.
-- **SSE** is a simple, auto-reconnecting **one-way** stream over plain HTTP.
-- **WebSockets** give **full-duplex**, low-overhead messaging but make servers **stateful**.
-- At scale, persistent connections need a **pub/sub layer** and a **connection registry** to route messages between servers.

@@ -1,6 +1,6 @@
 # DNS
 
-## TL;DR
+## Brief
 
 **DNS = Domain Name System.** The internet's phone book.
 
@@ -190,24 +190,3 @@ This is how global apps and CDNs send users to a nearby server. Managed DNS serv
 DNS sees the **resolver's** location, not the user's. A user in Delhi using a resolver in Singapore may get routed to Singapore. The **EDNS Client Subnet** extension helps by passing part of the user's IP along.
 
 DNS load balancing is usually the **first, coarse layer** (pick a region), with a real load balancer inside each region doing the fine-grained work.
-
----
-
-## Where this shows up in HLD
-
-- **Every design starts with DNS:** the first box in a request path is the client resolving your domain.
-- **Multi-region / global systems:** geo-DNS or latency-based routing is how you send users to the closest region.
-- **Failover:** DNS health checks + low TTL let you shift traffic away from a failed region.
-- **CDNs:** CNAMEs point your assets domain at the CDN, which then uses DNS/anycast to pick the nearest edge.
-- **Single point of failure:** if your DNS provider is down, *everything* is down. Large companies use multiple DNS providers.
-- **Trade-off question:** "Why not use DNS for all load balancing?" → caching and TTLs make it slow to react; use it for coarse routing, not per-request balancing.
-
----
-
-## Key takeaways
-
-- DNS turns names into IPs via a hierarchy: **resolver → root → TLD → authoritative**.
-- Key records: **A/AAAA** (IP), **CNAME** (alias), **MX** (mail), **NS** (delegation), **TXT** (verification).
-- **TTL** trades change speed against lookup speed; lower it before migrations.
-- **Caching at every layer** makes most lookups nearly free.
-- DNS can do **coarse load balancing and geo-routing**, but slow cache expiry makes it poor for instant failover alone.

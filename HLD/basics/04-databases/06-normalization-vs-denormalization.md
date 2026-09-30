@@ -1,6 +1,6 @@
 # Normalization vs Denormalization
 
-## TL;DR
+## Brief
 
 **Normalization** = store each fact **exactly once**, and link to it from everywhere else. Less duplication, fewer bugs when data changes, but reads need **joins**.
 
@@ -227,23 +227,3 @@ The cost: a post by someone with 10,000 followers = 10,000 writes. And if an aut
 | **Fits** | OLTP systems, write-heavy, correctness-critical | Read-heavy, large scale, NoSQL, analytics |
 
 **Rule of thumb:** start normalized (3NF). When a specific read is too slow and you've tried indexes and caching, denormalize **that one path**, and decide how copies stay in sync (same transaction, async events/CDC, or accept some staleness).
-
----
-
-## Where this shows up in HLD
-
-- News feeds, timelines, and dashboards are classic denormalization questions: "fan-out on write vs fan-out on read".
-- Choosing Cassandra or DynamoDB **forces** denormalization: you model one table per query, because there are no joins.
-- Sharded SQL systems denormalize to avoid cross-shard joins.
-- Interviewers look for you to name the **sync mechanism**: how do copies get updated, and how stale can they be?
-- Counters (likes, views, followers) are almost always stored denormalized, often in a cache.
-
----
-
-## Key takeaways
-
-- Normalization stores each fact once, preventing update, insert, and delete anomalies.
-- 1NF: atomic values. 2NF: depend on the whole key. 3NF: depend only on the key.
-- Denormalization copies data to make reads fast, at the cost of heavier writes and possible inconsistency.
-- Some copies are correct by design, like price at time of purchase.
-- Start normalized; denormalize specific hot paths deliberately, with a clear plan to keep copies in sync.

@@ -1,6 +1,6 @@
 # Rate Limiter
 
-## TL;DR
+## Brief
 
 **A rate limiter controls how many requests a client can make in a given amount of time.**
 
@@ -233,23 +233,3 @@ X-RateLimit-Reset: 1790000000
 | `X-RateLimit-Reset` | When the window resets (often a Unix timestamp; some APIs use seconds remaining) |
 
 The `X-RateLimit-*` headers are a widely used convention (GitHub, Twitter/X, and many others), not a formal standard; an IETF draft proposes standard `RateLimit` / `RateLimit-Policy` headers. Well-behaved clients should read these and back off, ideally with **exponential backoff + jitter** instead of retrying immediately.
-
----
-
-## Where this shows up in HLD
-
-- **"Design a rate limiter"** is a classic interview question on its own — expect to pick an algorithm, place it (API gateway), and make it distributed (Redis + atomic ops/Lua).
-- In **any public API design** (payments, URL shortener, social APIs), mention rate limiting at the gateway as part of protecting the system.
-- **Security-sensitive endpoints** (login, OTP, password reset) need tight per-user and per-IP limits against brute force.
-- **Multi-tier limits** are common: per-IP at the edge, per-user/API key at the gateway, per-endpoint for expensive operations.
-- Be ready to discuss **fail-open vs fail-closed**, and how clients should react to 429s.
-
----
-
-## Key takeaways
-
-- A rate limiter caps requests per client per time window to prevent abuse, ensure fairness, and protect systems and budgets.
-- Enforce it server side — usually at the API gateway — keyed by user, API key, or IP.
-- **Token bucket** allows controlled bursts; **leaky bucket** smooths output; **fixed window** is simple but leaks bursts at edges; **sliding window log** is exact but memory-heavy; **sliding window counter** is the cheap, accurate-enough middle ground.
-- In a multi-server setup, keep counters in a shared store like **Redis**, updated atomically (INCR or Lua scripts).
-- Reject with **HTTP 429** plus `Retry-After` and rate-limit headers so clients know when to try again.

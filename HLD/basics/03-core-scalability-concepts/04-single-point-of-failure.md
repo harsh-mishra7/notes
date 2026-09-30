@@ -1,6 +1,6 @@
 # Single Point of Failure (SPOF)
 
-## TL;DR
+## Brief
 
 A **single point of failure** is any one component that, if it breaks, **takes the whole system down with it.**
 
@@ -233,24 +233,3 @@ App servers in AZ-a and AZ-b, DB primary in one AZ and standby in the other. ✅
 | 3 | + the database primary |
 | 4 | + an entire datacenter (AZ) |
 | 5 | + an entire region |
-
----
-
-## Where this shows up in HLD
-
-- After drawing a design, interviewers often ask *"What are the single points of failure here?"* Walk through every box on the request path and explain how each is made redundant.
-- Expect follow-ups on **failover**: how is the failure detected, how long does switching take, and what data might be lost (sync vs async replication)?
-- Mention **multi-AZ** as the default for production systems; mention **multi-region** only when requirements demand it (global users, disaster recovery, very high availability).
-- The **database** is the most common SPOF in interview designs — always have an answer for it (replicas, standby, managed DB with automatic failover).
-- Real outages often come from **hidden** SPOFs: one DNS provider, one config service, one expired certificate, one region everything secretly depends on. Calling these out shows real-world maturity.
-
----
-
-## Key takeaways
-
-- A SPOF is anything whose failure stops the whole system — find them by asking "what if this box dies?"
-- Fix SPOFs with **redundancy + health checks + automatic failover**.
-- **Active-passive** is simpler and common for databases; **active-active** uses all capacity and suits stateless servers. Size for N+1.
-- Stateful components need **replication** — synchronous for zero data loss, asynchronous for speed.
-- Redundant copies must fail independently: spread across **AZs**, and **regions** if needed.
-- Watch out for split-brain and hidden shared dependencies.

@@ -1,6 +1,6 @@
 # Caching
 
-## TL;DR
+## Brief
 
 **A cache is a small, fast storage layer that keeps copies of data you'll probably need again.**
 
@@ -256,23 +256,3 @@ hit ratio = hits / (hits + misses)
 | < 50% | The cache may not be earning its keep — wrong keys, TTL too short, or cache too small |
 
 A small change matters a lot: going from 90% to 99% hit ratio cuts DB reads **10x** (from 10% to 1% of traffic).
-
----
-
-## Where this shows up in HLD
-
-- **Read-heavy systems** (news feeds, product pages, URL shorteners, profiles) almost always get a Redis cache between app and DB. Say "cache-aside with Redis and a TTL" as a sensible default.
-- **Expect follow-ups**: "What happens when the data changes?" (invalidation), "What if the cache goes down?" (DB must survive the load, or you degrade gracefully), "What about a celebrity's post?" (hot keys, stampede).
-- **Know which data should *not* be cached**: fast-changing or strongly consistent data like account balances or inventory counts during checkout.
-- Caching often comes up alongside **CDNs**, **consistent hashing** (for sharding a cache cluster), and **database replicas**.
-
----
-
-## Key takeaways
-
-- A cache trades a little freshness for a lot of speed and less DB load — it works because a few items get most of the traffic.
-- Caches exist at every layer: browser, CDN, proxy, app memory, Redis, and the DB itself.
-- **Cache-aside** is the default strategy; write-through, write-back, and write-around trade write speed against freshness and safety.
-- **LRU + TTL** is the most common eviction combo.
-- Invalidation is the hard part — prefer deleting keys on write, and always keep a TTL as a safety net.
-- Protect hot keys from stampedes with locking, stale-while-revalidate, or TTL jitter.

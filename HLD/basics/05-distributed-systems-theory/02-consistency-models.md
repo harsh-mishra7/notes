@@ -1,6 +1,6 @@
 # Consistency Models
 
-## TL;DR
+## Brief
 
 **A consistency model is a promise about what a read can return after a write.**
 
@@ -195,24 +195,3 @@ Because the write set and read set **must share at least one node**, the read se
 | Likes, views, follower counts | Eventual | Exact number doesn't matter right now |
 | Product catalog, search index | Eventual | Seconds of lag is fine |
 | DNS, CDN caches | Eventual | Speed and uptime matter more |
-
----
-
-## Where this shows up in HLD
-
-- **Database choice and config.** "We'll use Cassandra with `QUORUM` for orders and `ONE` for activity logs" shows you understand the knob.
-- **Read replicas.** Adding replicas to scale reads introduces lag. Interviewers will ask "what if the user reads right after writing?" — answer: read-your-writes (route to leader for that user's recent writes).
-- **Caching.** A cache is just another eventually consistent replica. Stale cache = stale read.
-- **Per-feature decisions.** Don't make the whole system strongly consistent "to be safe". Name which parts need it and which don't.
-- **Multi-region.** Strong consistency across continents costs 100+ ms per write. Usually you go strong within a region and eventual across regions.
-
----
-
-## Key takeaways
-
-- A consistency model defines **how stale a read is allowed to be** when data is replicated.
-- **Strong (linearizable)** = acts like one copy; safest, slowest. **Eventual** = copies converge someday; fastest, most available.
-- **Session guarantees** (read-your-writes, monotonic reads) fix the most visible user-facing weirdness cheaply.
-- **Causal** keeps cause-and-effect in order (replies after posts) without paying for full strong consistency.
-- **Quorum rule: R + W > N** makes read and write sets overlap so reads see the latest write.
-- Pick per use case: money and uniqueness → strong; counters and feeds → eventual.

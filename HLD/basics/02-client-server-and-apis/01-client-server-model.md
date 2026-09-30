@@ -1,6 +1,6 @@
 # Client-Server Model
 
-## TL;DR
+## Brief
 
 **One side asks, the other side answers.**
 
@@ -225,23 +225,3 @@ Most HLD interviews are about client-server systems.
 - **Network calls are slow and can fail.** Every hop adds latency and a chance of timeout. Design for retries and timeouts.
 - **Never trust client input.** Validate everything on the server.
 - **Don't expose the database to the internet.** Always go through the application tier.
-
----
-
-## Where this shows up in HLD
-
-- **Every design starts here.** Your first diagram in an interview is almost always `Client → Load Balancer → App servers → Database`. That's 3-tier with a load balancer.
-- **Scaling conversations** are really "which tier is the bottleneck?" Add app servers (scale the application tier), add read replicas or sharding (scale the data tier), add a CDN (take load off everything).
-- **Thick vs thin clients** affect design choices: a mobile app with offline support needs sync logic; a server-rendered site needs more backend capacity.
-- **API design** (next note) is the contract between the client and server tiers.
-- **Microservices** are just the application tier broken into many smaller servers that are clients of each other.
-
----
-
-## Key takeaways
-
-- A client **asks**, a server **answers**. The client always starts the conversation in plain HTTP.
-- The request/response cycle: DNS → connect → request → server work → response.
-- Thin clients push work to the server; thick clients do more on the device. **Never trust the client either way.**
-- **3-tier (frontend → backend → database)** is the default architecture. Clients never touch the DB directly.
-- Real systems are N-tier: many client-server pairs chained together, where a component can be a server to one side and a client to the other.

@@ -1,6 +1,6 @@
 # Reverse Proxy and API Gateway
 
-## TL;DR
+## Brief
 
 **A proxy is a middleman that passes requests along on someone's behalf.**
 
@@ -181,23 +181,3 @@ Client ──► CDN ──► Load Balancer ──► API Gateway ──► Mic
 ```
 
 In smaller systems, a single Nginx instance can be the reverse proxy, load balancer, *and* do basic gateway work.
-
----
-
-## Where this shows up in HLD
-
-- **Microservices designs** almost always get an API gateway at the front. Mention it when you split a system into services.
-- **"Where do you do authentication and rate limiting?"** — the gateway is the standard answer, so each service doesn't re-implement it.
-- **TLS termination** at the proxy/LB is the usual answer to "where does HTTPS end?"
-- **Mobile clients** benefit from gateway aggregation (fewer round trips on slow networks).
-- Interviewers like hearing that you know these **overlap** — don't draw three separate boxes if one Nginx would do; do separate them when scale or team boundaries call for it.
-
----
-
-## Key takeaways
-
-- A **forward proxy** hides clients; a **reverse proxy** hides servers. System design cares about the reverse proxy.
-- Reverse proxies handle TLS termination, caching, compression, and security so app servers stay simple.
-- An **API gateway** is a reverse proxy for APIs: routing to microservices, auth, rate limiting, and request aggregation.
-- LB, reverse proxy, and API gateway overlap heavily — often one tool (Nginx, Envoy) plays several roles.
-- Every entry point is a potential single point of failure, so run it redundantly — and keep business logic out of the gateway.

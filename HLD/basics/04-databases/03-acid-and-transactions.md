@@ -1,6 +1,6 @@
 # ACID and Transactions
 
-## TL;DR
+## Brief
 
 A **transaction** is a group of database operations that should be treated as **one unit**: either all of them happen, or none of them do.
 
@@ -188,22 +188,3 @@ Many distributed NoSQL databases (Cassandra, DynamoDB by default, Riak) choose a
 ```
 
 It's not all-or-nothing: many systems use ACID for the core (orders, payments) and BASE for the rest (feeds, counters).
-
----
-
-## Where this shows up in HLD
-
-- Payments, wallets, ticket booking, inventory ("don't sell the last seat twice") — interviewers expect you to say **transactions** and usually **row locking or serializable isolation**.
-- When data is **sharded across machines**, a transaction touching two shards becomes a **distributed transaction** (e.g. two-phase commit) — slow and complex. Designs often avoid it with **sagas** (a chain of local transactions with compensating "undo" steps).
-- Choosing Cassandra/DynamoDB means accepting BASE-style trade-offs — say so explicitly.
-- "Strong vs eventual consistency" questions tie directly to ACID vs BASE and to replication.
-
----
-
-## Key takeaways
-
-- A transaction = all-or-nothing group of operations. ACID is its four guarantees.
-- Atomicity handles failures, Consistency enforces rules, Isolation handles concurrency, Durability survives crashes.
-- Isolation levels trade anomalies (dirty, non-repeatable, phantom reads) for speed.
-- Read Committed is a common default; use Serializable or row locks for money and inventory.
-- BASE = availability + eventual consistency; fine for counters and feeds, not for payments.

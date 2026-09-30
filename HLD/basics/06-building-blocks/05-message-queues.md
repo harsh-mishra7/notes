@@ -1,6 +1,6 @@
 # Message Queues
 
-## TL;DR
+## Brief
 
 **A message queue lets one part of a system hand off work to another part without waiting for it to finish.**
 
@@ -207,24 +207,3 @@ After N failed attempts, the message moves to a DLQ. The main queue keeps flowin
 - On AWS and want **zero ops**? → **SQS** (+ SNS for fan-out)
 
 Others you'll hear: Google Pub/Sub, Azure Service Bus, Redis Streams, NATS, Apache Pulsar.
-
----
-
-## Where this shows up in HLD
-
-- **Anything slow or non-urgent** goes async: sending emails/SMS/push notifications, video transcoding, image resizing, generating reports.
-- **Event-driven microservices**: "order placed" is published once; payment, inventory, shipping, and notification services each react.
-- **Absorbing spikes**: flash sales, ticket booking, ride requests — a queue protects downstream services from bursts.
-- **Data pipelines**: Kafka feeding analytics, search indexes, and data warehouses from the same event stream.
-- **Expect follow-ups**: "What if a message is processed twice?" (idempotency), "What if it keeps failing?" (retries + DLQ), "Does order matter?" (partition by key).
-
----
-
-## Key takeaways
-
-- A message queue lets producers hand off work and move on; consumers process it at their own pace.
-- **Point-to-point** = each message handled by one worker (jobs). **Pub-sub** = every subscriber gets a copy (events).
-- Queues give you decoupling, spike buffering, resilience, and easy retries — at the cost of eventual (not immediate) results.
-- **At-least-once** delivery is the norm, so make consumers **idempotent**.
-- Use **dead-letter queues** for messages that keep failing; ordering is usually guaranteed only per partition/key.
-- Kafka for high-volume event streams and replay, RabbitMQ for flexible task queues, SQS for managed simplicity.

@@ -1,6 +1,6 @@
 # Stateless vs Stateful Servers
 
-## TL;DR
+## Brief
 
 **State** = anything the server remembers about you *between* requests (who you are, what's in your cart, what step of checkout you're on).
 
@@ -189,24 +189,3 @@ For these, you design explicitly for it: replication, partitioning, and routing 
 - **Scheduled jobs on every server.** Running a cron inside each app server means the job runs N times. Use a single scheduler or a distributed lock.
 - **The session store becomes critical.** If Redis goes down, everyone is logged out. Replicate it.
 - **Don't put secrets in client-side state.** Tokens can be read by the client; don't store anything there you wouldn't want the user to see (unless encrypted).
-
----
-
-## Where this shows up in HLD
-
-- Almost every design has **"stateless app servers behind a load balancer"**. Say it explicitly, and say where the state goes (Redis for sessions, DB for data, S3 for files).
-- When the interviewer asks **"how would you scale this?"**, stateless app tier is the first answer: add servers and autoscale.
-- **Sticky sessions** come up as a trap: know why they hurt availability and load balancing.
-- **Chat, notifications, live location, multiplayer** designs are stateful by nature. Expect questions like "user A is on server 3 and user B is on server 9, how does a message get from A to B?" (Answer: a shared connection registry plus pub/sub.)
-- **Auth design** is tied to this: session store vs JWT is really a stateful-vs-stateless choice.
-
----
-
-## Key takeaways
-
-- **State** is what a server remembers between requests. If it's in the server's memory, the server is stateful.
-- **Stateless servers are interchangeable**, which makes horizontal scaling, failover, and deploys easy.
-- **Sticky sessions** patch the problem but hurt reliability and load balancing.
-- The real fix: **move state out**: sessions to Redis, data to the DB, files to object storage, or into a signed token.
-- The state doesn't disappear; it moves to **specialized stores** that you scale and replicate on purpose.
-- Some things (DBs, WebSocket servers) are stateful by design. Plan routing and replication for them.

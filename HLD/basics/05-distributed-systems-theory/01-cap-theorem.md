@@ -1,6 +1,6 @@
 # CAP Theorem
 
-## TL;DR
+## Brief
 
 **CAP = Consistency, Availability, Partition tolerance.**
 
@@ -171,24 +171,3 @@ Why the "else" trade-off? To be strongly consistent, a write must reach other re
 | Classic Dynamo, Riak | A | L | **PA/EL** |
 
 PACELC is more useful day-to-day, because you pay the latency cost on *every* request, not just during rare outages.
-
----
-
-## Where this shows up in HLD
-
-- **Every "which database?" question.** Interviewers want to hear you pick a side *for this use case*: "Payments need CP; the news feed can be AP."
-- **Splitting one system into parts.** Real designs mix both: order placement is CP, product reviews and view counts are AP.
-- **Multi-region designs.** Cross-region writes add 100+ ms. You'll trade latency vs consistency (PACELC) constantly.
-- **Explaining failure behavior.** "If region X is cut off, users there can still browse (AP) but checkout returns an error (CP)." That sentence scores points.
-- **Coordination services.** Leader election, distributed locks, config — always CP (etcd, ZooKeeper), because two leaders is worse than zero.
-
----
-
-## Key takeaways
-
-- CAP is about what happens **during a network partition**: stay consistent (refuse some requests) or stay available (maybe serve stale data).
-- **P is not optional** in a distributed system, so the real choice is **CP vs AP**. "CA" only exists on a single node.
-- CAP's **C = linearizability**, and **A = every live node answers** — both are stricter than everyday usage.
-- Many databases are **tunable**; the configuration decides, not the brand name.
-- **PACELC** adds the everyday trade-off: even without a partition, you choose **latency vs consistency**.
-- In interviews, choose per feature: money and locks → CP; counters, feeds, carts → AP.

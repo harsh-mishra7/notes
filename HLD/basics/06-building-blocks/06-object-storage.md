@@ -1,6 +1,6 @@
 # Object Storage
 
-## TL;DR
+## Brief
 
 **Object storage is a way to store huge amounts of files ("objects") as simple key → blob pairs, accessed over HTTP.**
 
@@ -166,23 +166,3 @@ Split every file into two parts:
 Now you can query "all photos by user 42 from last week" in the DB fast, and fetch the actual files from object storage/CDN only when needed.
 
 **Tip:** use unique, non-guessable keys (e.g. UUIDs) rather than user-provided filenames, to avoid collisions and people guessing other users' file URLs.
-
----
-
-## Where this shows up in HLD
-
-- **Instagram, YouTube, Dropbox, WhatsApp media, Netflix** — any design with user-uploaded files uses object storage for the bytes and a DB for metadata.
-- **Uploads via pre-signed URLs** is a strong interview point — it shows you know how to keep large payloads off your app servers.
-- **Video platforms**: raw upload → object storage → message queue triggers transcoding workers → processed versions back to object storage → served through a CDN.
-- **Backups, logs, and data lakes** land in object storage because it's cheap and durable, with lifecycle rules moving old data to cold tiers.
-- **Static website hosting**: HTML/CSS/JS in a bucket behind a CDN.
-
----
-
-## Key takeaways
-
-- Object storage keeps files as **key → object (bytes + metadata)** in flat buckets, accessed over HTTP.
-- Block storage is a raw disk (databases), file storage is a shared filesystem, object storage is cheap, massive, and durable for blobs.
-- S3 is designed for **11 nines of durability** by replicating across multiple data centers.
-- Use **pre-signed URLs** so clients upload/download directly without passing big files through your servers.
-- Standard pattern: **metadata in the database, bytes in object storage, served through a CDN.**

@@ -1,6 +1,6 @@
 # Database Indexing
 
-## TL;DR
+## Brief
 
 An **index** is a separate, sorted data structure that helps the database **find rows without scanning the whole table**.
 
@@ -214,22 +214,3 @@ Indexes are not free. Every index is a copy of some of your data that must stay 
 - **Duplicate indexes** — `(a)` is redundant if you already have `(a, b)`.
 
 **Rule of thumb:** index what your **real queries** filter, join, and sort on. Check with `EXPLAIN`. Remove indexes nobody uses.
-
----
-
-## Where this shows up in HLD
-
-- When you define a table in a design, say which **indexes** support your main queries: "orders indexed on `(user_id, created_at)` for the order history page".
-- **Read-heavy vs write-heavy** decides the storage engine: B-tree (Postgres/MySQL) vs LSM (Cassandra/RocksDB).
-- In NoSQL, the partition/sort key *is* the index. In DynamoDB, extra access patterns need **secondary indexes** (GSIs), which cost extra writes too.
-- Search features ("find products containing 'red shoes'") need a different kind of index — an **inverted index** (Elasticsearch), not a B-tree.
-
----
-
-## Key takeaways
-
-- An index is a sorted side-structure that turns full scans into fast lookups.
-- B-tree is the default: supports equality, ranges, and sorting. Hash supports only equality.
-- LSM trees trade read speed for very fast writes; used by Cassandra and RocksDB.
-- Composite index column order matters: leftmost prefix rule, equality first, range last.
-- Every index slows writes and costs storage — index for real queries only.

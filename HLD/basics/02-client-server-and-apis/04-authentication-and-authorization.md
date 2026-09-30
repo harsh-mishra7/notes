@@ -1,6 +1,6 @@
 # Authentication and Authorization
 
-## TL;DR
+## Brief
 
 Two different questions, often confused:
 
@@ -273,24 +273,3 @@ These aren't strictly competitors. A real system often combines them: users sign
 - **OAuth is not login.** Use OIDC when you need to know *who* the user is.
 - **Always HTTPS.** Any token or cookie over plain HTTP can be stolen.
 - **Check authorization on every request**, for every resource, on the server. "Is this user allowed to see order 123?" is the most commonly forgotten check (it's called IDOR, Insecure Direct Object Reference).
-
----
-
-## Where this shows up in HLD
-
-- Most designs have an **auth service** or an **API gateway** that verifies tokens before requests reach other services. Mention where auth happens.
-- **Session vs JWT** is really a stateless-vs-stateful choice. Stateless JWTs help scale microservices; sessions in Redis are simpler to revoke.
-- For microservices: **auth server signs JWTs with a private key; every service verifies with the public key** (fetched from a JWKS endpoint). No central lookup per call.
-- **"Log in with Google"** or enterprise designs → mention OAuth 2.0 + OIDC, and the authorization code flow with PKCE.
-- **Security follow-ups** you'll get: token expiry and refresh, logout, rate limiting login attempts, MFA, and where authorization (RBAC/ownership) is enforced.
-
----
-
-## Key takeaways
-
-- **Authentication = who you are (401). Authorization = what you can do (403).** Authn first, then authz, always on the server.
-- **Sessions:** random ID in an `HttpOnly` cookie, data in a server-side store. Easy revocation, needs a lookup.
-- **JWT:** signed, self-contained, stateless. Readable by anyone, hard to revoke, so use **short-lived access tokens + refresh tokens**.
-- **OAuth 2.0** is delegated authorization (the valet key). The **authorization code flow (+ PKCE)** keeps tokens out of the browser URL.
-- **OIDC** adds identity on top of OAuth and powers "Log in with Google" and modern **SSO**.
-- Real systems combine these: OIDC to sign in, sessions or JWTs to stay signed in, RBAC to decide permissions.

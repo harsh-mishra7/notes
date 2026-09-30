@@ -1,6 +1,6 @@
 # CDN (Content Delivery Network)
 
-## TL;DR
+## Brief
 
 **A CDN is a network of servers spread around the world that keep copies of your content close to your users.**
 
@@ -135,23 +135,3 @@ Keep index.html itself on a SHORT TTL — it's what points to the new filenames.
 ## Common CDNs
 
 Cloudflare · AWS CloudFront · Akamai · Fastly · Google Cloud CDN · Azure Front Door/CDN · Bunny.net
-
----
-
-## Where this shows up in HLD
-
-- **Any system serving media** — YouTube/Netflix (video), Instagram (images), news sites — puts a CDN in front of object storage. Draw it between the client and the storage bucket.
-- **Global users** — when the interviewer says "users worldwide," a CDN is the first answer for static content latency.
-- **Offloading reads** — a CDN can absorb the vast majority of static traffic, so your app servers only handle dynamic API calls.
-- **Typical pattern:** `Client → CDN → Object storage (S3)` for files, and `Client → LB → App servers → DB` for the API.
-- Expect questions on **stale content after deploys** (versioned filenames) and **what must not be cached** (personal data).
-
----
-
-## Key takeaways
-
-- A CDN is a worldwide cache: edge servers in PoPs serve copies of your content close to users.
-- Main wins: lower latency, much less load on the origin, and resilience to spikes and DDoS.
-- **Pull CDNs** (fetch on first miss) are the default; **push CDNs** suit big, predictable files.
-- Put static, same-for-everyone content on it — never personalized responses.
-- Control freshness with `Cache-Control` TTLs, and prefer **versioned filenames** over purging.

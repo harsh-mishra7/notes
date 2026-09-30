@@ -1,6 +1,6 @@
 # How a Request Travels
 
-## TL;DR
+## Brief
 
 You type `https://shop.com/products` and press Enter. In the next few hundred milliseconds, your browser:
 
@@ -252,23 +252,3 @@ A rough budget for a first visit to a server ~50 ms away (RTT = 100 ms):
 | Rendering | 10s-100s of ms | — |
 
 **~300+ ms before the first byte arrives** — and most of it is *waiting*, not computing. This is why CDNs (shorter RTT), connection reuse, and HTTP/3 (fewer handshakes) exist.
-
----
-
-## Where this shows up in HLD
-
-- **"What happens when you type a URL?"** is a classic interview warm-up. It tests whether you see the whole path.
-- **Latency discussions:** knowing handshakes cost RTTs explains *why* CDNs, edge servers, and connection pooling help.
-- **Placing components:** the server-side layers (CDN → LB → app → cache → DB) are the skeleton of almost every HLD diagram you'll draw.
-- **Failure points:** DNS down, cert expired, LB misrouting, DB slow — each step is a place things break, and a place to add redundancy.
-- **Optimization:** every improvement you'll propose (caching, CDN, HTTP/2, keep-alive) removes or shortens one of these steps.
-
----
-
-## Key takeaways
-
-- A request goes **DNS → TCP → TLS → HTTP request → server → HTTP response → render**.
-- Handshakes cost **round trips**; distance and round trips, not CPU, dominate web latency.
-- **Caching and connection reuse** let later requests skip most of these steps.
-- The **server-side path** (CDN, load balancer, app, cache, DB) is where system design happens.
-- One page load = **dozens of requests**, so small per-request costs multiply.

@@ -1,6 +1,6 @@
 # Load Balancer
 
-## TL;DR
+## Brief
 
 **A load balancer (LB) sits in front of a group of servers and spreads incoming requests across them.**
 
@@ -253,24 +253,3 @@ Big systems often stack them: **DNS → L4 LB → L7 LB → app servers.**
 | **AWS NLB** | Managed, L4 | TCP/UDP, extremely high throughput, static IPs |
 | **GCP / Azure LB** | Managed, L4 and L7 | Cloud equivalents |
 | **F5, Citrix** | Hardware appliances | Older enterprise data centers |
-
----
-
-## Where this shows up in HLD
-
-- **Almost every design starts with it.** "Client → Load Balancer → App servers" is the first line of nearly every system design diagram. Draw it early.
-- **It's what makes horizontal scaling possible.** When the interviewer asks "how do you handle 10x traffic?", the answer is "add servers behind the LB" — which only works if the servers are **stateless**.
-- **Expect the SPOF question.** Mention redundant LBs (active-passive or a managed cloud LB) before you're asked.
-- **LBs appear at multiple layers**, not just the edge: between services, in front of database read replicas, in front of cache clusters.
-- **Consistent hashing** comes up again in caching and database sharding — the same idea reused.
-
----
-
-## Key takeaways
-
-- A load balancer spreads traffic across many servers and routes around dead ones — giving you both scale and availability.
-- **L4** routes by IP/port (fast, protocol-agnostic); **L7** routes by HTTP details like URL and headers (smarter, most web apps use it).
-- Round robin is the default; least connections handles uneven request times; consistent hashing keeps keys stable when servers change.
-- Health checks are how the LB knows who's alive — without them it keeps sending traffic to dead servers.
-- Prefer **stateless servers + shared session store** over sticky sessions.
-- Never run a single LB — use redundant pairs or a managed cloud LB.

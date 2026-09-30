@@ -1,6 +1,6 @@
 # Idempotency, Retries & Timeouts
 
-## TL;DR
+## Brief
 
 **The network is unreliable. Requests get lost, replies get lost, servers get slow.**
 
@@ -262,24 +262,3 @@ If a dependency is clearly down, retrying every request just wastes time and add
 ```
 
 While open, return a **fallback**: cached data, a default value, or a clear error. Libraries: Resilience4j (Java), Polly (.NET), Envoy/Istio (service mesh).
-
----
-
-## Where this shows up in HLD
-
-- **Payment systems.** "How do you avoid double charging?" → idempotency keys, stored with a unique constraint. This is asked constantly.
-- **Message queues and event-driven designs.** State "at-least-once delivery with idempotent consumers" whenever you draw a queue.
-- **Microservice calls.** Every arrow in your diagram needs a timeout. Mention retries with backoff + jitter and a circuit breaker for critical dependencies.
-- **Handling failures / reliability questions.** Explain how retry storms turn a blip into an outage, and how you'd prevent it (retry at one layer, budgets, breakers).
-- **API design.** Use `PUT` for idempotent updates; accept an `Idempotency-Key` header on `POST` endpoints that create money-moving or irreversible actions.
-
----
-
-## Key takeaways
-
-- When a request gets no answer, you **can't know** whether it happened. Design for that.
-- **Always set timeouts**, based on real latency (around p99), and propagate deadlines downstream.
-- Retry only transient errors, with **exponential backoff + jitter** and a hard cap — otherwise you cause **retry storms**.
-- **Idempotency makes retries safe.** Use idempotent methods (`PUT`, `DELETE`) or **idempotency keys** for `POST` (e.g. payments).
-- "Exactly-once" in practice = **at-least-once delivery + idempotent processing**.
-- **Circuit breakers** fail fast when a dependency is down, giving it time to recover.

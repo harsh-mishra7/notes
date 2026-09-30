@@ -1,6 +1,6 @@
 # SQL vs NoSQL
 
-## TL;DR
+## Brief
 
 **SQL databases** store data in **tables with a fixed structure** (rows and columns) and let you connect tables together with joins. Think PostgreSQL, MySQL.
 
@@ -214,22 +214,3 @@ E-commerce app
 | "SQL can't scale" | It scales far with replicas, caching, and sharding. Many huge companies run on MySQL/Postgres. |
 | "NoSQL means no schema" | The schema still exists — it just lives in your application code instead of the database. |
 | "NoSQL means no transactions" | Many NoSQL DBs support transactions now, often with limits. |
-
----
-
-## Where this shows up in HLD
-
-- Almost every design interview has a "which database?" moment. Interviewers want a **reason tied to the access pattern**, not a brand name.
-- Good answer shape: "Orders need multi-row transactions, so Postgres. Chat messages are append-heavy and read by `(chat_id, time)`, so Cassandra. Sessions go in Redis."
-- Picking NoSQL usually means you must **design around queries upfront** — say what your queries are before naming the store.
-- Mentioning trade-offs (joins lost, consistency weakened, scaling gained) shows maturity.
-
----
-
-## Key takeaways
-
-- SQL = tables + joins + ACID. The safe default for related, correctness-critical data.
-- NoSQL = four families (document, key-value, wide-column, graph), each optimized for one kind of access.
-- Pick based on **access patterns and scale**, not hype.
-- NoSQL gains easy horizontal scaling, usually by giving up joins and some consistency.
-- Real systems mix several databases, each doing what it's best at.

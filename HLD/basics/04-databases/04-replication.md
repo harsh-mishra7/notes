@@ -1,6 +1,6 @@
 # Database Replication
 
-## TL;DR
+## Brief
 
 **Replication = keeping copies of the same data on multiple machines.**
 
@@ -226,24 +226,3 @@ What can go wrong:
 - **Timeout tuning** — too short: failover on a brief network blip. Too long: minutes of downtime.
 
 Managed services (AWS RDS Multi-AZ, Aurora, Cloud SQL) automate this, typically in seconds to a minute or two.
-
----
-
-## Where this shows up in HLD
-
-- "How do you handle a database server dying?" → replication + automatic failover.
-- "Reads are 100x writes" → add **read replicas** (and a cache).
-- Mention **replication lag** and a **read-your-writes** fix — interviewers love that detail.
-- Multi-region designs raise the question: single leader (simple, cross-region write latency) or multi-leader (fast local writes, conflicts).
-- Choosing Cassandra/DynamoDB → talk in terms of **N, R, W** and tunable consistency.
-
----
-
-## Key takeaways
-
-- Replication = copies on multiple machines, for availability, durability, and read scaling.
-- Leader-follower is the default: one writer, many readers. Read replicas scale reads, not writes.
-- Async replication is fast but causes lag; handle read-your-writes explicitly.
-- Multi-leader and leaderless give better write availability at the cost of conflict handling.
-- Quorum rule: W + R > N means reads see the latest write.
-- Failover is where things break: lost writes and split brain.

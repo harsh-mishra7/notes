@@ -1,6 +1,6 @@
 # Latency vs Throughput
 
-## TL;DR
+## Brief
 
 - **Latency** = how long **one** request takes. (Measured in ms.)
 - **Throughput** = how **many** requests you finish per unit of time. (Measured in requests/sec, MB/sec.)
@@ -218,25 +218,3 @@ The classic figures (from Jeff Dean / Peter Norvig), rounded. Modern hardware is
 | **Improved by** | Caching, CDNs, fewer hops, faster code | More servers, parallelism, batching |
 | **Hurt by** | Distance, queuing, GC, disk I/O | Bottlenecks, locks, single-threaded parts |
 | **How to report it** | Percentiles (p50/p95/p99) | Peak and sustained rate |
-
----
-
-## Where this shows up in HLD
-
-- **Requirements phase:** interviewers expect you to ask both — "What latency do we need (e.g. p99 < 200 ms)?" and "What throughput (e.g. 50k QPS peak)?" These drive every later decision.
-- **Back-of-the-envelope estimates** use the latency numbers table: "a DB call is ~1-10 ms, a cache hit is sub-ms, so we cache the hot path."
-- **Always state SLOs as percentiles**, not averages. Saying "p99 under 300 ms" signals experience.
-- **Batching vs real-time** is a classic trade-off: analytics pipelines batch for throughput; payment and chat systems prioritize latency.
-- **Little's Law** helps size connection pools, thread pools, and worker counts.
-- **Fan-out services** (news feed, search) are where tail latency hurts most — mention timeouts and hedged requests.
-
----
-
-## Key takeaways
-
-- **Latency = time per request. Throughput = requests per second.** Improving one doesn't automatically improve the other.
-- **Averages lie.** Measure and set goals using p50, p95, and p99.
-- Tail latency gets amplified when one request fans out to many backend calls.
-- Batching raises throughput at the cost of latency; high utilization makes latency explode from queuing.
-- Little's Law (`L = λ × W`) links concurrency, throughput, and latency.
-- Memory ≪ SSD ≪ disk ≪ cross-ocean network — design around those orders of magnitude.

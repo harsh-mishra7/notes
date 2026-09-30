@@ -1,6 +1,6 @@
 # Vertical vs Horizontal Scaling
 
-## TL;DR
+## Brief
 
 Your app is getting more traffic than one server can handle. You have two choices:
 
@@ -220,24 +220,3 @@ Stage 6:  Shard the DB                          ← only when truly needed
 ```
 
 Scale the **stateless** parts horizontally early (it's cheap). Scale the **stateful** parts (the database) vertically for as long as you reasonably can.
-
----
-
-## Where this shows up in HLD
-
-- Almost every system design interview has a moment where the interviewer says *"now 100x the traffic."* The expected answer is: make app servers stateless, put them behind a load balancer, scale out, then deal with the database (replicas, cache, sharding).
-- Saying "just get a bigger server" is fine as a first step — but mention the ceiling and the single point of failure.
-- Interviewers look for you to spot that **the database is usually the real bottleneck** once the app tier scales out.
-- Auto-scaling comes up when traffic is spiky (flash sales, ticket booking, live events). Mention warm-up time and minimum capacity.
-- Real world: Stack Overflow famously ran on a small number of powerful servers (vertical). Netflix, Uber, etc. run thousands of small instances (horizontal). Both are valid choices.
-
----
-
-## Key takeaways
-
-- **Vertical = bigger machine, horizontal = more machines.**
-- Vertical is simple but has a hard ceiling, a steep cost curve, and is a single point of failure.
-- Horizontal needs **stateless servers, a load balancer, and a plan for the data layer.**
-- The database is the hardest thing to scale out — use replicas and caching before sharding.
-- Auto-scaling only works well on stateless tiers, and new nodes take time to become useful.
-- In practice: scale up first, scale out when you must, and do both.

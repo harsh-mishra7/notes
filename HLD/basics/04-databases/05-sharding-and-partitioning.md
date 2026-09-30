@@ -1,6 +1,6 @@
 # Sharding and Partitioning
 
-## TL;DR
+## Brief
 
 **Partitioning = splitting one big dataset into smaller pieces.**
 **Sharding = horizontal partitioning where each piece lives on a different machine.**
@@ -247,22 +247,3 @@ Add Server E between A and B → only keys between A and E move to E.
 ```
 
 It's covered in depth in [consistent-hashing.md](../05-distributed-systems-theory/03-consistent-hashing.md); the key point here is that it makes **adding and removing shards cheap**, which is why Cassandra, DynamoDB, and many caches use it.
-
----
-
-## Where this shows up in HLD
-
-- Almost every "design X at scale" question reaches: "one database can't handle this — how do you shard?" Name the **shard key** and **why**.
-- Back-of-envelope math decides it: e.g. 10 TB of data at 1 TB per machine → ~10+ shards.
-- Interviewers probe the weak spots: hot keys (celebrities), cross-shard queries, and resharding. Have an answer for each.
-- Many managed databases shard for you (DynamoDB, Cassandra, MongoDB, Vitess for MySQL, Citus for Postgres) — but the **key choice is still yours**.
-
----
-
-## Key takeaways
-
-- Vertical partitioning splits columns/tables; horizontal partitioning (sharding) splits rows across machines.
-- Strategies: range (good for ranges, risks hot spots), hash (even, no ranges), directory (flexible, extra hop), geo (latency, compliance).
-- The shard key should be high-cardinality, evenly used, and match your main query.
-- Hot keys need salting, caching, or special handling; hashing alone doesn't fix them.
-- Resharding and cross-shard queries are the real costs — consistent hashing and co-locating related data reduce them.

@@ -1,6 +1,6 @@
 # HTTP and HTTPS
 
-## TL;DR
+## Brief
 
 **HTTP** is the language browsers and servers speak. It's a simple **request → response** conversation:
 
@@ -221,24 +221,3 @@ HTTP/1.1, HTTP/2               HTTP/3
 | Encryption | Optional | Effectively required by browsers | Always (built in) |
 
 HTTP/2 and HTTP/3 keep the same methods, status codes, and headers — only the transport underneath changes. Your API code doesn't care which version is used.
-
----
-
-## Where this shows up in HLD
-
-- **API design:** choosing the right methods and status codes, and making writes **idempotent** so retries are safe.
-- **Retries and timeouts:** knowing which errors (5xx, 429, 504) to retry and which (4xx) not to.
-- **Caching:** `Cache-Control`, `ETag`, and `304` are how CDNs and browsers avoid refetching.
-- **Load balancers:** L7 load balancers read HTTP (path, headers, cookies) to route; they also do **TLS termination**.
-- **Performance:** HTTP/2 multiplexing and HTTP/3's faster setup are real levers for mobile and high-latency users.
-- **Statelessness:** HTTP being stateless is *why* app servers can scale horizontally — any server can handle any request if session state lives elsewhere (token, Redis).
-
----
-
-## Key takeaways
-
-- HTTP is a stateless **request → response** protocol: method + path + headers + body in, status + headers + body out.
-- Status codes: **2xx ok, 3xx redirect, 4xx your fault, 5xx our fault**.
-- **Idempotent** methods (GET, PUT, DELETE) are safe to retry; POST needs an idempotency key.
-- **HTTPS = HTTP + TLS**: encryption, integrity, and server identity via certificates.
-- **HTTP/2** multiplexes over one TCP connection; **HTTP/3** moves to QUIC/UDP to remove TCP head-of-line blocking and speed up setup.

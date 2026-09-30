@@ -1,6 +1,6 @@
 # API Styles: REST, GraphQL, gRPC
 
-## TL;DR
+## Brief
 
 An **API** is the menu a server offers: the list of requests it accepts and what it sends back.
 
@@ -291,24 +291,3 @@ user, err := client.GetUser(ctx, &pb.GetUserRequest{Id: 42})
 | Polyglot backend (Go + Java + Python) needing strict contracts | **gRPC** |
 
 Very common real combo: **REST or GraphQL at the edge (for clients), gRPC inside (between services).**
-
----
-
-## Where this shows up in HLD
-
-- In most interviews, after requirements you **define the API**: list 3-6 endpoints like `POST /tweets`, `GET /feed?cursor=...`. REST is the default unless you have a reason.
-- **Pagination** comes up in any feed, search, or list design. Say "cursor-based" and explain why.
-- **Idempotency** comes up in payments, orders, and anything retried: mention idempotency keys.
-- **Microservice designs** often say "services talk over gRPC" for internal calls, and put an **API Gateway** in front that speaks REST/GraphQL to clients.
-- GraphQL comes up with "mobile clients on slow networks" or "many different frontends". Be ready to mention N+1 and query cost limits.
-
----
-
-## Key takeaways
-
-- **REST** = resources + HTTP verbs + status codes. Stateless, cacheable, universal. The safe default.
-- **GraphQL** = one endpoint, client picks exact fields. Fixes over/under-fetching; watch for N+1 and costly queries.
-- **gRPC** = typed function calls over HTTP/2 with binary protobuf. Fast, streams, ideal for internal service-to-service.
-- Use **cursor pagination** for large or changing lists, and **version** your public APIs.
-- Know which methods are **idempotent**; it decides what's safe to retry.
-- Real systems mix them: REST/GraphQL outside, gRPC inside.

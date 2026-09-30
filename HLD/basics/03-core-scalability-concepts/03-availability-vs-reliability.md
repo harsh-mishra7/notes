@@ -1,6 +1,6 @@
 # Availability vs Reliability
 
-## TL;DR
+## Brief
 
 - **Availability** = is the system **up and responding** right now? (Measured as % of time it's usable.)
 - **Reliability** = does the system **do the right thing, consistently, without failing**? (Measured as how long it runs between failures.)
@@ -192,25 +192,3 @@ How durability is achieved:
 | **Backups** | Periodic snapshots, stored somewhere else |
 
 > Replication is not a backup. If someone runs `DELETE FROM users`, replication faithfully deletes it everywhere. You still need point-in-time backups.
-
----
-
-## Where this shows up in HLD
-
-- **Non-functional requirements:** early in an interview, state a target — "we aim for 99.99% availability for reads, and payments must be durable." It shapes every later choice.
-- **Series vs parallel math** justifies redundancy: "each app server is 99%, so we run at least two behind a load balancer."
-- **Every dependency on the critical path costs availability.** Interviewers like it when you make non-essential calls async or optional (e.g. analytics shouldn't take down checkout).
-- **MTTR matters more than MTBF** in real operations — talk about health checks, automated failover, and fast rollbacks.
-- **CAP theorem** discussions are partly about availability: during a network partition, do you stay available or stay consistent?
-- **Durability** comes up for storage systems (S3, databases, message queues): how many replicas, acknowledged when, backed up where.
-
----
-
-## Key takeaways
-
-- **Availability = is it up. Reliability = does it work correctly without failing. Durability = is the data safe.**
-- Each extra nine cuts allowed downtime by 10x and costs a lot more — pick what the business needs.
-- **SLI** is the measurement, **SLO** the internal target, **SLA** the external contract (always looser than the SLO).
-- Components in **series multiply down** availability; components in **parallel** push it up.
-- `Availability = MTBF / (MTBF + MTTR)` — recovering faster is often the cheapest win.
-- Replication improves availability and durability, but it's not a backup.

@@ -1,6 +1,6 @@
 # IP, Ports, TCP and UDP
 
-## TL;DR
+## Brief
 
 - **IP address** = *which machine* on the network.
 - **Port** = *which program* on that machine.
@@ -228,23 +228,3 @@ Client                    Server
 > Note: Netflix/YouTube *on-demand* video mostly uses TCP (HTTP). Buffering a few seconds ahead hides retransmission delays. It's **real-time** media that prefers UDP.
 
 **Rule of thumb:** if losing data is worse than waiting → TCP. If waiting is worse than losing a bit → UDP.
-
----
-
-## Where this shows up in HLD
-
-- **Protocol choice:** designing a video call app, a multiplayer game, or a metrics pipeline? Say *why* you'd pick UDP over TCP.
-- **Connection cost:** TCP handshakes explain why **connection pooling** (to databases) and **keep-alive** (for HTTP) matter at scale.
-- **Load balancers:** L4 load balancers route on IP + port (TCP/UDP level); L7 ones read HTTP. Knowing the layers makes this distinction clear.
-- **Private networks:** in cloud designs, app servers and databases live on **private IPs** inside a VPC; only the load balancer has a public one.
-- **Limits:** each connection needs a port and memory — relevant when designing systems with millions of open connections (chat, WebSockets).
-
----
-
-## Key takeaways
-
-- **IP** finds the machine, **port** finds the program; together they form a socket.
-- Private IPs are reused everywhere; **NAT** lets them share a public IP.
-- **TCP** = handshake + ACKs + ordering + flow/congestion control → reliable but slower to start.
-- **UDP** = no guarantees, minimal overhead → ideal for real-time data where late is useless.
-- Pick TCP when correctness matters most, UDP when freshness matters most.

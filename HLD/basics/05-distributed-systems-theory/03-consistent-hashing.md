@@ -1,6 +1,6 @@
 # Consistent Hashing
 
-## TL;DR
+## Brief
 
 **Consistent hashing is a way to spread keys across servers so that adding or removing a server only moves a small slice of the keys.**
 
@@ -217,24 +217,3 @@ When a node dies, the replicas on its neighbors already have the data, so nothin
 | **Discord, message brokers, chat systems** | Route a channel/user to a specific server. |
 
 Note: **Redis Cluster** uses a related idea — 16,384 fixed **hash slots** assigned to nodes. Moving a slot moves only that slot's keys. Same goal, different mechanism.
-
----
-
-## Where this shows up in HLD
-
-- **"Design a distributed cache / key-value store."** Consistent hashing is the expected answer for "how do you decide which node stores a key?"
-- **Sharding a database.** Explain how you add capacity without a massive reshuffle.
-- **Scaling and failure questions.** "What happens when a node dies?" → only its keys move, and replicas on neighbors take over.
-- **Hot spots.** Mention virtual nodes for balance — and that one *very* hot key still lands on one node (fix separately with caching or key splitting).
-- **Sticky load balancing.** Routing the same user to the same server (for local caches or WebSocket connections) without breaking everything when a server is added.
-
----
-
-## Key takeaways
-
-- `hash(key) % N` remaps **almost all keys** whenever N changes — terrible for caches and shards.
-- Consistent hashing places nodes and keys on a **ring**; each key belongs to the **next node clockwise**.
-- Adding or removing a node moves only about **1/N of the keys** — just the ones next to it.
-- **Virtual nodes** fix uneven load, spread a dead node's keys across many servers, and support different-sized machines.
-- Replicas are usually the **next few distinct nodes clockwise**.
-- Used in Cassandra, DynamoDB, distributed caches, CDNs, and load balancers.
