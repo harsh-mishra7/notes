@@ -212,7 +212,7 @@ Later requests:  User (cookie lb=S2) ──► LB ──► S2   (always)
 | No code changes needed | If S2 dies, those users lose their session anyway |
 | | Makes scaling down and deploys harder |
 
-**The better fix:** make servers **stateless**. Store sessions in a shared store (Redis, a database) or in a signed token (JWT). Then any server can handle any request, and you don't need stickiness at all. This is what interviewers usually want to hear.
+**The better fix:** make servers **stateless**. Store sessions in a shared store (Redis, a database) or in a signed token (JWT). Then any server can handle any request, and you don't need stickiness at all.
 
 ---
 
