@@ -43,25 +43,24 @@ Then the front desk **writes it on a sticky note** (cache), so the next person a
 ## How a name gets resolved
 
 ```
-                 ┌───────────────────────────┐
-                 │  Your device              │
-                 │  (browser + OS cache)     │
-                 └────────────┬──────────────┘
-                     1 │ "shop.com?"  ▲ 8  "93.184.216.34"
-                       ▼              │
-                 ┌───────────────────────────┐
-                 │   Recursive resolver      │
-                 │   (ISP / 8.8.8.8 / 1.1.1.1)│
-                 └──┬───────────┬─────────┬──┘
-         2 "shop.com?"   4 "shop.com?"   6 "shop.com?"
-                    │           │         │
-             3 "ask .com"  5 "ask ns1.   7 "93.184.216.34"
-                    │       shop.com"     │
-                    ▼           ▼         ▼
-             ┌─────────┐ ┌──────────┐ ┌───────────────┐
-             │  Root   │ │ .com TLD │ │ Authoritative │
-             │ servers │ │ servers  │ │ ns1.shop.com  │
-             └─────────┘ └──────────┘ └───────────────┘
+             ┌─────────────────────────────┐
+             │         Your device         │
+             │    (browser + OS cache)     │
+             └────────┬───────────┬────────┘
+          1 shop.com? │           ▲ 8 93.184.216.34
+                      ▼           │
+┌─────────────────────┴───────────┴─────────────────────┐
+│                  Recursive resolver                   │
+│               (ISP / 8.8.8.8 / 1.1.1.1)               │
+└───────┬───────────────────┬───────────────────┬───────┘
+        │                   │                   │
+        │ 2 ↓ shop.com?     │ 4 ↓ shop.com?     │ 6 ↓ shop.com?
+        │ 3 ↑ go to .com    │ 5 ↑ ns1.shop.com  │ 7 ↑ 93.184.216.34
+        ▼                   ▼                   ▼
+┌───────────────┐   ┌───────────────┐   ┌───────────────┐
+│     Root      │   │   .com TLD    │   │ Authoritative │
+│    servers    │   │    servers    │   │ ns1.shop.com  │
+└───────────────┘   └───────────────┘   └───────────────┘
 ```
 
 Step by step:
