@@ -12,7 +12,6 @@ You type `https://shop.com/products` and press Enter. In the next few hundred mi
 6. The server **sends the page back** (HTTP response)
 7. The browser **turns the bytes into pixels** (rendering)
 
-Every system design topic hooks into one of these steps. Learn this flow once, and the rest of HLD has a place to live.
 
 ---
 
@@ -49,31 +48,39 @@ You wouldn't dial before knowing the number, and you wouldn't order before the c
 ## The big picture
 
 ```
- YOU                                                         SERVER SIDE
-┌────────┐
-│Browser │
-└───┬────┘
-    │ 1. DNS: "Where is shop.com?"
-    ├──────────────────────────► DNS resolver ──► "93.184.216.34"
-    │
-    │ 2. TCP handshake  (SYN → SYN-ACK → ACK)
-    ├──────────────────────────────────────────►┌──────────────┐
-    │                                            │ Load balancer│
-    │ 3. TLS handshake  (certs + keys)           │  / CDN edge  │
-    ├──────────────────────────────────────────►└──────┬───────┘
-    │                                                   │
-    │ 4. HTTP request:  GET /products                   ▼
-    ├──────────────────────────────────────────► ┌─────────────┐
-    │                                            │ App server  │
-    │                              5. Processing │   │         │
-    │                                            │   ▼         │
-    │                                            │ Cache / DB  │
-    │ 6. HTTP response: 200 OK + HTML            └─────────────┘
-    │◄──────────────────────────────────────────
-    │
-    │ 7. Parse HTML → fetch CSS/JS/images → paint pixels
-    ▼
-  Page on screen
+                    YOU          ◄─────────────── SERVER SIDE ───────────────►
+ ┌───────────┐   ┌───────────┐   ┌───────────┐   ┌───────────┐   ┌───────────┐
+ │    DNS    │   │  Browser  │   │ LB / Edge │   │  Backend  │   │ Cache, DB │
+ └─────┬─────┘   └─────┬─────┘   └─────┬─────┘   └─────┬─────┘   └─────┬─────┘
+       │               │               │               │               │
+       │  "shop.com?"  │               │               │               │   ① DNS lookup
+       │◄──────────────│               │               │               │
+       │ 93.184.216.34 │               │               │               │
+       │──────────────►│               │               │               │
+       │               │               │               │               │
+       │               │   SYN ⇄ ACK   │               │               │   ② TCP handshake
+       │               │◄─────────────►│               │               │
+       │               │               │               │               │
+       │               │ certs + keys  │               │               │   ③ TLS handshake
+       │               │◄─────────────►│               │               │
+       │               │               │               │               │
+       │               │ GET /products │               │               │   ④ HTTP request
+       │               │──────────────►│               │               │
+       │               │               │    forward    │               │
+       │               │               │──────────────►│               │
+       │               │               │               │               │
+       │               │               │               │     query     │   ⑤ Processing
+       │               │               │               │──────────────►│
+       │               │               │               │     rows      │
+       │               │               │               │◄──────────────│
+       │               │               │               │               │
+       │               │               │   response    │               │   ⑥ HTTP response
+       │               │               │◄──────────────│               │
+       │               │ 200 OK + HTML │               │               │
+       │               │◄──────────────│               │               │
+       │               │               │               │               │
+                       ▼
+                ⑦ Parse HTML → fetch CSS/JS/images → paint pixels
 ```
 
 Now let's walk through each step.
@@ -112,8 +119,6 @@ Result: `shop.com → 93.184.216.34`
 - **Cached:** ~0-few ms
 - **Full lookup:** ~20-100+ ms
 
-> Deep dive: see `dns.md`.
-
 ---
 
 ## Step 2: TCP handshake — open a reliable connection
@@ -130,8 +135,6 @@ Browser                          Server
 ```
 
 **Cost: 1 RTT** before any data can be sent.
-
-> Deep dive: see `ip-ports-tcp-udp.md`.
 
 ---
 
@@ -152,7 +155,6 @@ Browser                               Server
 - **TLS 1.3:** 1 RTT
 - **TLS 1.2 (older):** 2 RTTs
 
-> Deep dive: see `http-https.md`.
 
 ---
 
@@ -174,21 +176,35 @@ It says: *which action* (`GET`), *which resource* (`/products?id=7`), and *extra
 
 ## Step 5: Server processing — where HLD lives
 
-This is the part system design interviews care most about. A real request often passes through many layers:
+A real request often passes through many layers:
 
 ```
-Internet
-   │
-   ▼
-┌─────────┐   ┌───────────────┐   ┌──────────────┐   ┌─────────┐
-│ CDN /   │──►│ Load balancer │──►│  App server  │──►│  Cache  │
-│ WAF     │   │ (picks a box) │   │ (your code)  │   │ (Redis) │
-└─────────┘   └───────────────┘   └──────┬───────┘   └────┬────┘
-                                         │   miss          │
-                                         ▼                 │
-                                   ┌──────────┐            │
-                                   │ Database │◄───────────┘
-                                   └──────────┘
+                      Internet
+                         │
+                         ▼
+               ┌───────────────────┐
+               │     CDN / WAF     │──► static file? served from the edge
+               └─────────┬─────────┘
+                         │ dynamic request
+                         ▼
+               ┌───────────────────┐
+               │   Load balancer   │    picks a healthy server
+               └─────────┬─────────┘
+               ┌─────────┼─────────┐
+               ▼         ▼         ▼
+           ┌───────┐ ┌───────┐ ┌───────┐
+           │ App 1 │ │ App 2 │ │ App 3 │  your code: auth, logic
+           └───────┘ └───┬───┘ └───────┘
+                         │
+               ┌─────────┴─────────┐
+     1. check  │                   │  2. on miss
+               ▼                   ▼
+         ┌───────────┐       ┌───────────┐
+         │   Cache   │       │ Database  │
+         │  (Redis)  │       │  (truth)  │
+         └───────────┘       └───────────┘
+
+   3. on miss, the app writes the DB result into the cache
 ```
 
 | Layer | Job |
@@ -199,7 +215,6 @@ Internet
 | **Cache** | Return hot data fast without hitting the DB |
 | **Database** | The source of truth |
 
-Each layer is a topic of its own in HLD.
 
 ---
 
