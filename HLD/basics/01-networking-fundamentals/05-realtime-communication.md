@@ -211,7 +211,7 @@ Does the client need to send frequent messages back on the same channel?
 
 ---
 
-## Scaling persistent connections (the HLD part)
+## Scaling persistent connections 
 
 SSE and WebSockets mean **every online user holds an open connection**. With 10 million users online, that's 10 million connections across your fleet.
 
@@ -219,17 +219,18 @@ Problem: user A is connected to server 1, user B to server 3. A sends B a messag
 
 ```
    User A                                          User B
-     │                                               ▲
-     ▼                                               │
-┌──────────┐     publish "msg for B"     ┌──────────┐
-│ WS server│ ──────────►┌────────┐──────►│ WS server│
-│    1     │            │ Pub/Sub│       │    3     │
-└──────────┘            │ (Redis,│       └──────────┘
-                        │ Kafka) │
-┌──────────┐            └────────┘
-│ WS server│   (servers subscribe to channels for the users they hold)
-│    2     │
-└──────────┘
+      │                                               ▲
+      ▼                                               │
+┌────────────┐ publish  ┌────────────┐ deliver  ┌────────────┐
+│ WS server  │─────────►│  Pub/Sub   │─────────►│ WS server  │
+│     1      │ "for B"  │  (Redis,   │          │     3      │
+└────────────┘          │   Kafka)   │          └────────────┘
+                        └────────────┘
+
+┌────────────┐
+│ WS server  │
+│     2      │   (servers subscribe to channels for the users they hold)
+└────────────┘
 ```
 
 Common building blocks:
