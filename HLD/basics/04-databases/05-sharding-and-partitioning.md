@@ -246,7 +246,7 @@ Server D   ·k3
 Add Server E between A and B → only keys between A and E move to E.
 ```
 
-It's covered in depth in [consistent-hashing.md](../05-distributed-systems-theory/consistent-hashing.md); the key point here is that it makes **adding and removing shards cheap**, which is why Cassandra, DynamoDB, and many caches use it.
+It's covered in depth in [consistent-hashing.md](../05-distributed-systems-theory/03-consistent-hashing.md); the key point here is that it makes **adding and removing shards cheap**, which is why Cassandra, DynamoDB, and many caches use it.
 
 ---
 
